@@ -8,6 +8,7 @@ from unittest import TestCase
 # Disable W0612 (Unused variable) and
 # E1101 (Instance of 'foo' has no 'bar' member)
 
+
 class AnyOldObject(object):
     """Simple testing object.
 
@@ -34,7 +35,7 @@ class TempliteTest(TestCase):
 
     def assertSynErr(self, msg):
         pat = "^" + re.escape(msg) + "$"
-        return self.assertRaisesRegexp(TempliteSyntaxError, pat)
+        return self.assertRaisesRegex(TempliteSyntaxError, pat)
 
     def test_passthrough(self):
         # Strings without variables are passed through unchanged.
@@ -226,6 +227,37 @@ class TempliteTest(TestCase):
             "@a0b0c0a1b1c1a2b2c2!"
             )
 
+    def test_block(self):
+        self.try_render(
+            "{% block var %}{{ name }}{% endblock %}",
+            {'name': 'Ned'},
+            "Ned"
+            )
+        self.try_render(
+            "{% block var %}"
+            "{% if task %}"
+                "Running!"
+            "{% endif %}"
+            "{% endblock %}",
+            {'task': True},
+            "Running!"
+            )
+
+    def test_extends(self):
+        self.try_render(
+            "{% extends basic %}", {'basic': 'One'}, "One"
+            )
+        self.try_render(
+            "{% extends basic %}"
+            "{% block num %}"
+            "{% if count %}Four{% endif %}"
+            "{% endblock %}",
+            {'count': True, basic: "One{% block num %}Two{% endblock %}Three"},
+            "One"
+            "Four"
+            "Three"
+            )
+
     def test_exception_during_evaluation(self):
         # TypeError: Couldn't evaluate {{ foo.bar.baz }}:
         # 'NoneType' object is unsubscriptable
@@ -241,6 +273,10 @@ class TempliteTest(TestCase):
             self.try_render("Wat: {{ foo|filter%&!@ }}")
         with self.assertSynErr("Not a valid name: '@'"):
             self.try_render("Wat: {% for @ in x %}{% endfor %}")
+        with self.assertSynErr("Not a valid name: '@'"):
+            self.try_render("Wat: {% block @ %}")
+        with self.assertSynErr("Not a valid name: '@'"):
+            self.try_render("{% extends @ %}")
 
     def test_bogus_tag_syntax(self):
         with self.assertSynErr("Don't understand tag: 'bogus'"):
@@ -259,6 +295,18 @@ class TempliteTest(TestCase):
             self.try_render("Weird: {% for x from y %}loop{% endfor %}")
         with self.assertSynErr("Don't understand for: '{% for x, y in z %}'"):
             self.try_render("Weird: {% for x, y in z %}loop{% endfor %}")
+
+    def test_malformed_extends(self):
+        with self.assertSynErr("Don't understand extends: '{% extends %}'"):
+            self.try_render("{% extends %}")
+        with self.assertSynErr("Don't understand extends: '{% extends x %}'"):
+            self.try_render("Weird: {% extends x %}")
+
+    def test_invalid_extends(self):
+        with self.assertSynErr("Not a valid name: 'unknown'"):
+            self.try_render("{% extends unknown %}")
+        with self.assertSynErr("Not a valid tempalte: 'basic'"):
+            self.try_render("{% extends basic %}", {'basic': 1})
 
     def test_bad_nesting(self):
         with self.assertSynErr("Unmatched action tag: 'if'"):

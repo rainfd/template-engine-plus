@@ -105,6 +105,7 @@ class Templite(object):
 
         self.all_vars = set()
         self.loop_vars = set()
+        self.block_vars = set()
 
         # We construct a function in source form, then compile it and hold onto
         # it, and execute it to render the template.
@@ -126,6 +127,35 @@ class Templite(object):
             elif len(buffered) > 1:
                 code.add_line("extend_result([%s])" % ", ".join(buffered))
             del buffered[:]
+
+        base = re.match(r"{% extends (\w+) %}", text)
+        # An extend tag on the top: inheritance a template
+        if base:
+            base_name = base.group(1)
+            if base_name not in contexts:
+                self._syntax_error("Not a valid name", base_name)
+                base_template = contexts[base_name]
+            if not isinstance(base_template, str):
+                self._syntax_error("Not a valid template", base_name)
+
+            data = re.findall(r"(?s){% block (\w+) %}(.*?){% endblock %}", text)
+            for x, _ in data:
+                self._variable(x, self.block_vars)
+            block_content = dict(data)
+
+            tokens = re.split(r"(?s)({{.*?}}|{%.*?%}|{#.*?#})", base_template)
+
+            # Replace the blocks which are rewirtten in the child template 
+            new_text = []
+            for token in tokens:
+                content = token
+                block =  re.match("(?s){% block (\w+) %}(.*?){% endblock %}", token)
+                if block:
+                    raw = block_data.get(block.group(1), None)
+                    if raw:
+                        content = re.sub("(?s)(?<=})(.*?)(?<={)", raw, token)
+                new_text.append(content)
+            text = ''.join(new_text)
 
         ops_stack = []
 
@@ -164,6 +194,15 @@ class Templite(object):
                         )
                     )
                     code.indent()
+                elif words[0] == 'block':
+                    # An unchanged block: do nothing.
+                    if len(words) != 2:
+                        self._syntax_error("Don't understand for", token)
+                    ops_stack.append('block')
+                    self._variable(words[1], self.block_vars)
+                elif words[0] == 'extends':
+                    # A wrong extends tag.
+                    self._syntax_error("Don't understand extends", token)
                 elif words[0].startswith('end'):
                     # Endsomething.  Pop the ops stack.
                     if len(words) != 1:
@@ -174,7 +213,8 @@ class Templite(object):
                     start_what = ops_stack.pop()
                     if start_what != end_what:
                         self._syntax_error("Mismatched end tag", end_what)
-                    code.dedent()
+                    if start_what != 'block':
+                        code.dedent()
                 else:
                     self._syntax_error("Don't understand tag", words[0])
             else:
@@ -250,3 +290,9 @@ class Templite(object):
             if callable(value):
                 value = value()
         return value
+
+
+if __name__ == '__main__':
+    base = 'One'
+    tmp = Templite("{% extends base %}")
+    print(tmp.render())
