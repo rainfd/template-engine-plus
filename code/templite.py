@@ -128,22 +128,31 @@ class Templite(object):
                 code.add_line("extend_result([%s])" % ", ".join(buffered))
             del buffered[:]
 
-        base = re.match(r"{% extends (\w+) %}", text)
+        base = re.match(r"{% extends (.*?) %}", text)
         # An extend tag on the top: inheritance a template
         if base:
             base_name = base.group(1)
-            if base_name not in contexts:
+            '''
+            print(base_name)
+            print(self.context)
+            print(base_name in self.context)
+            '''
+            if not re.match(r"[_a-zA-Z][_a-zA-Z0-9]*", base_name):
                 self._syntax_error("Not a valid name", base_name)
-                base_template = contexts[base_name]
+            if base_name not in self.context:
+                self._syntax_error("Not a valid name", base_name)
+            base_template = self.context[base_name]
             if not isinstance(base_template, str):
                 self._syntax_error("Not a valid template", base_name)
 
+            # Save the child template in a dict
             data = re.findall(r"(?s){% block (\w+) %}(.*?){% endblock %}", text)
             for x, _ in data:
                 self._variable(x, self.block_vars)
-            block_content = dict(data)
+            block_data = dict(data)
 
-            tokens = re.split(r"(?s)({{.*?}}|{%.*?%}|{#.*?#})", base_template)
+            # Split the text to form the block tokens.
+            tokens = re.split(r"(?s)({% block \w+ %}.*?{% endblock %})", base_template)
 
             # Replace the blocks which are rewirtten in the child template 
             new_text = []
@@ -153,8 +162,9 @@ class Templite(object):
                 if block:
                     raw = block_data.get(block.group(1), None)
                     if raw:
-                        content = re.sub("(?s)(?<=})(.*?)(?<={)", raw, token)
+                        content = re.sub("(?s)(?<=})(.*?)(?={% endblock %})", raw, token)
                 new_text.append(content)
+            
             text = ''.join(new_text)
 
         ops_stack = []
@@ -290,9 +300,3 @@ class Templite(object):
             if callable(value):
                 value = value()
         return value
-
-
-if __name__ == '__main__':
-    base = 'One'
-    tmp = Templite("{% extends base %}")
-    print(tmp.render())

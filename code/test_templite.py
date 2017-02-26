@@ -244,19 +244,13 @@ class TempliteTest(TestCase):
             )
 
     def test_extends(self):
-        self.try_render(
-            "{% extends basic %}", {'basic': 'One'}, "One"
-            )
-        self.try_render(
-            "{% extends basic %}"
-            "{% block num %}"
-            "{% if count %}Four{% endif %}"
-            "{% endblock %}",
-            {'count': True, basic: "One{% block num %}Two{% endblock %}Three"},
-            "One"
-            "Four"
-            "Three"
-            )
+        self.assertEqual(Templite("{% extends cnt %}", {'cnt': '1'}).render(), '1')
+        self.assertEqual(Templite(
+                "{% extends base %}"
+                "{% block num %}one{% endblock %}",
+                {'base': "ABC{% block num %}{% endblock %}"}).render(),
+             "ABCone")
+
 
     def test_exception_during_evaluation(self):
         # TypeError: Couldn't evaluate {{ foo.bar.baz }}:
@@ -305,8 +299,9 @@ class TempliteTest(TestCase):
     def test_invalid_extends(self):
         with self.assertSynErr("Not a valid name: 'unknown'"):
             self.try_render("{% extends unknown %}")
-        with self.assertSynErr("Not a valid tempalte: 'basic'"):
-            self.try_render("{% extends basic %}", {'basic': 1})
+        with self.assertSynErr("Not a valid template: 'basic'"):
+            self.assertEqual(Templite("{% extends basic %}", {'basic': 1}).render(),
+                None)
 
     def test_bad_nesting(self):
         with self.assertSynErr("Unmatched action tag: 'if'"):
