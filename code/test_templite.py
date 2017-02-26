@@ -143,6 +143,13 @@ class TempliteTest(TestCase):
             "123 and 123"
             )
 
+    def test_variables_loops(self):
+        self.try_render(
+            "{% for x,y in z %}{{x}},{{y}}{% endfor %}",
+            {'z': [(1,2), (2,3)]},
+            "1,22,3"
+            )
+
     def test_comments(self):
         # Single-line comments work:
         self.try_render(

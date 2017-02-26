@@ -14,7 +14,7 @@ Features:
 
 - [x] Complex conditional logic like else and elif
 
-- [ ] Loops with more than one loop variable
+- [x] Loops with more than one loop variable
 
 - [ ] Whitespace control
 

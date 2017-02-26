@@ -218,10 +218,21 @@ class Templite(object):
                     if len(words) != 4 or words[2] != 'in':
                         self._syntax_error("Don't understand for", token)
                     ops_stack.append('for')
-                    self._variable(words[1], self.loop_vars)
+                    variables = words[1].split(',')
+                    for word in variables:
+                        self._variable(word, self.loop_vars)
+                    #self._variable(words[1], self.loop_vars)
+                    '''
                     code.add_line(
                         "for c_%s in %s:" % (
                             words[1],
+                            self._expr_code(words[3])
+                        )
+                    )
+                    '''
+                    code.add_line(
+                        "for %s in %s:" % (
+                            ','.join('c_' + x for x in variables),
                             self._expr_code(words[3])
                         )
                     )
