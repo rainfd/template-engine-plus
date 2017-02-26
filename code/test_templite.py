@@ -216,6 +216,48 @@ class TempliteTest(TestCase):
             "X!"
             )
 
+    def test_elif(self):
+        self.try_render(
+            "{% if One %}One{% elif Two %}Two{% endif %}",
+            {'One': False, 'Two': True},
+            "Two"
+            )
+        self.try_render(
+            "{% if One %}One{% elif Two %}Two{% endif %}",
+            {'One': True, 'Two': True},
+            "One"
+            )
+        self.try_render(
+            "{% if One %}One"
+                "{% if Two %}Two{% elif Three %}Three{% endif %}"
+            "{% endif %}",
+            {'One': True, 'Two': False, 'Three': True},
+            "OneThree"
+            )
+
+    def test_else(self):
+        self.try_render(
+            "{% if One %}One{% else %}Two{% endif %}",
+            {'One': False},
+            'Two'
+            )
+        self.try_render(
+            "{% if One %}"
+                "{% if Two %}Two"
+                "{% else %}Three"
+                "{% endif %}"
+            "{% endif %}",
+            {"One": True, "Two": False},
+            "Three"
+            )
+
+    def test_if_elif_else(self):
+        self.try_render(
+            "{% if One %}One{% elif Two %}Two{% else %}Three{% endif %}",
+            {'One': False, 'Two': False},
+            "Three"
+            )
+
     def test_nested_loops(self):
         self.try_render(
             "@"
@@ -282,6 +324,22 @@ class TempliteTest(TestCase):
         with self.assertSynErr("Don't understand if: '{% if this or that %}'"):
             self.try_render("Buh? {% if this or that %}hi!{% endif %}")
 
+    def test_malformed_elif(self):
+        with self.assertSynErr("Don't understand elif: '{% elif %}'"):
+            self.try_render(
+                "{% if One %}One{% elif %}Two{% endif %}",
+                {'One': True}
+                )
+        with self.assertSynErr("Don't understand elif: '{% elif a b c %}'"):
+            self.try_render(
+                "{% if One %}One{% elif a b c %}abc{% endif %}",
+                {'One': True}
+                )
+
+    def test_malformed_else(self):
+        with self.assertSynErr("Don't understand else: '{% else a %}'"):
+            self.try_render("{% if One %}One{% else a %}a", {'One': True})
+
     def test_malformed_for(self):
         with self.assertSynErr("Don't understand for: '{% for %}'"):
             self.try_render("Weird: {% for %}loop{% endfor %}")
@@ -310,6 +368,14 @@ class TempliteTest(TestCase):
             self.try_render("{% if x %}X{% endfor %}")
         with self.assertSynErr("Too many ends: '{% endif %}'"):
             self.try_render("{% if x %}{% endif %}{% endif %}")
+        with self.assertSynErr("Unmatched action tag: 'elif'"):
+            self.try_render("{% elif x %}")
+        with self.assertSynErr("Unmatched action tag: 'else'"):
+            self.try_render("{% else %}")
+        with self.assertSynErr("Mismatched elif tag: 'for'"):
+            self.try_render("{% for x in y %}{% elif x %}")
+        with self.assertSynErr("Mismatched else tag: 'for'"):
+            self.try_render("{% for x in y %}{% else %}")
 
     def test_malformed_end(self):
         with self.assertSynErr("Don't understand end: '{% end if %}'"):

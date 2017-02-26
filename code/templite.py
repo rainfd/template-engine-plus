@@ -191,6 +191,28 @@ class Templite(object):
                     ops_stack.append('if')
                     code.add_line("if %s:" % self._expr_code(words[1]))
                     code.indent()
+                elif words[0] == 'elif':
+                    # An elif: follow if
+                    if len(words) != 2:
+                        self._syntax_error("Don't understand elif", token)
+                    if not ops_stack:
+                        self._syntax_error("Unmatched action tag", words[0])
+                    elif ops_stack[-1] != 'if':
+                        self._syntax_error("Mismatched elif tag", ops_stack[-1])
+                    code.dedent()
+                    code.add_line("elif %s:" % self._expr_code(words[1]))
+                    code.indent()
+                elif words[0] == 'else':
+                    # An else: follow if or elif
+                    if len(words) != 1:
+                        self._syntax_error("Don't understand else", token)
+                    if not ops_stack:
+                        self._syntax_error("Unmatched action tag", words[0])
+                    elif ops_stack[-1] != 'if':
+                        self._syntax_error("Mismatched else tag", ops_stack[-1])
+                    code.dedent()
+                    code.add_line("else:")
+                    code.indent()
                 elif words[0] == 'for':
                     # A loop: iterate over expression result.
                     if len(words) != 4 or words[2] != 'in':

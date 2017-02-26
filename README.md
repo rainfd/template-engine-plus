@@ -4,7 +4,7 @@ The original project is written by Ned Batchelder at [500lines/template-engine](
 
 Features:
 
-- [ ] Template inheritance and inclusion
+- [x] Template inheritance and inclusion
 
 - [ ] Custom tags
 
@@ -12,7 +12,7 @@ Features:
 
 - [ ] Arguments to filters
 
-- [ ] Complex conditional logic like else and elif
+- [x] Complex conditional logic like else and elif
 
 - [ ] Loops with more than one loop variable
 
