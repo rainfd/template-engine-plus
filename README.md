@@ -4,13 +4,13 @@ The original project is written by Ned Batchelder at [500lines/template-engine](
 
 Features:
 
-- [x] Template inheritance and inclusion
+- [ ] Template inheritance and inclusion
 
 - [ ] Custom tags
 
 - [ ] Automatic escaping
 
-- [ ] Arguments to filters
+- [x] Arguments to filters
 
 - [x] Complex conditional logic like else and elif
 

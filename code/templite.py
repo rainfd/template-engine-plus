@@ -154,7 +154,7 @@ class Templite(object):
             # Split the text to form the block tokens.
             tokens = re.split(r"(?s)({% block \w+ %}.*?{% endblock %})", base_template)
 
-            # Replace the blocks which are rewirtten in the child template 
+            # Replace the blocks which are rewirtten in the child template
             new_text = []
             for token in tokens:
                 content = token
@@ -164,7 +164,7 @@ class Templite(object):
                     if raw:
                         content = re.sub("(?s)(?<=})(.*?)(?={% endblock %})", raw, token)
                 new_text.append(content)
-            
+
             text = ''.join(new_text)
 
         ops_stack = []
@@ -283,8 +283,12 @@ class Templite(object):
             pipes = expr.split("|")
             code = self._expr_code(pipes[0])
             for func in pipes[1:]:
+                if ':' in func:
+                    func, para = func.split(':')
+                    code = "c_%s(%s, %s)" % (func, code, para)
+                else:
+                    code = "c_%s(%s)" % (func, code)
                 self._variable(func, self.all_vars)
-                code = "c_%s(%s)" % (func, code)
         elif "." in expr:
             dots = expr.split(".")
             code = self._expr_code(dots[0])

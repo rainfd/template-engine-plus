@@ -66,6 +66,16 @@ class TempliteTest(TestCase):
         # Pipes can be concatenated.
         self.try_render("Hello, {{name|upper|second}}!", data, "Hello, E!")
 
+    def test_pipes_parameters(self):
+        # Arguments to filters
+        data = {
+            'num': 1,
+            'string': 'string',
+            'add': lambda x, y: x + y,
+        }
+        self.try_render("{{ num|add:2 }}", data, '3')
+        self.try_render("{{ string|add:'STRING' }}", data, 'stringSTRING')
+
     def test_reusability(self):
         # A single Templite can be used more than once with different data.
         globs = {
