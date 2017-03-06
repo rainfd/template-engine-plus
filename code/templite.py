@@ -157,12 +157,8 @@ class Templite(object):
                 block =  re.match("(?s){% block (.*?) %}(.*?){% endblock %}", token)
                 if block:
                     block_name = block.group(1).strip()
-                ilse:
-                    content = token
                     self._variable(block_name, set())
                     if block_name in block_data:
-                        #block_content = block_data[block_name]
-                        #content = re.sub("(?s)(?<=})(.*?)(?={% endblock %})", block_content, token)
                         content = block_data[block_name]
                 new_text.append(content)
             text = ''.join(new_text)
