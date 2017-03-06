@@ -4,7 +4,7 @@ The original project is written by Ned Batchelder at [500lines/template-engine](
 
 Features:
 
-- [ ] Template inheritance and inclusion
+- [x] Template inheritance and inclusion
 
 - [ ] Custom tags
 

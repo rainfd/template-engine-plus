@@ -129,16 +129,12 @@ class Templite(object):
             del buffered[:]
 
         base = re.match(r"{% extends (.*?) %}", text)
-        # An extend tag on the top: inheritance a template
+        # An extends tag on the top: inheritance a template
         if base:
             base_name = base.group(1)
-            '''
-            print(base_name)
-            print(self.context)
-            print(base_name in self.context)
-            '''
-            if not re.match(r"[_a-zA-Z][_a-zA-Z0-9]*", base_name):
-                self._syntax_error("Not a valid name", base_name)
+            #if not re.match(r"[_a-zA-Z][_a-zA-Z0-9]*", base_name):
+                #self._syntax_error("Not a valid name", base_name)
+            self._variable(base_name, set())
             if base_name not in self.context:
                 self._syntax_error("Not a valid name", base_name)
             base_template = self.context[base_name]
@@ -146,26 +142,48 @@ class Templite(object):
                 self._syntax_error("Not a valid template", base_name)
 
             # Save the child template in a dict
-            data = re.findall(r"(?s){% block (\w+) %}(.*?){% endblock %}", text)
+            data = re.findall(r"(?s){% block (.*?) %}(.*?){% endblock %}", text)
             for x, _ in data:
-                self._variable(x, self.block_vars)
+                self._variable(x.strip(), self.block_vars)
             block_data = dict(data)
 
             # Split the text to form the block tokens.
-            tokens = re.split(r"(?s)({% block \w+ %}.*?{% endblock %})", base_template)
+            tokens = re.split(r"(?s)({% block .*? %}.*?{% endblock %})", base_template)
 
             # Replace the blocks which are rewirtten in the child template
             new_text = []
             for token in tokens:
                 content = token
-                block =  re.match("(?s){% block (\w+) %}(.*?){% endblock %}", token)
+                block =  re.match("(?s){% block (.*?) %}(.*?){% endblock %}", token)
                 if block:
-                    raw = block_data.get(block.group(1), None)
-                    if raw:
-                        content = re.sub("(?s)(?<=})(.*?)(?={% endblock %})", raw, token)
+                    block_name = block.group(1).strip()
+                ilse:
+                    content = token
+                    self._variable(block_name, set())
+                    if block_name in block_data:
+                        #block_content = block_data[block_name]
+                        #content = re.sub("(?s)(?<=})(.*?)(?={% endblock %})", block_content, token)
+                        content = block_data[block_name]
                 new_text.append(content)
-
             text = ''.join(new_text)
+
+        # An include tag: import a whole template
+        tokens = re.split(r"({% include .*? %})", text)
+        if len(tokens) != 1:
+            new_text = []
+            for token in tokens:
+                include = re.match("{% include (.*?) %}", token)
+                if include:
+                    template_name = include.group(1).strip()
+                    self._variable(template_name, set())
+                    if template_name not in self.context:
+                        self._syntax_error("Don't understand include", token)
+                    template = self.context[template_name]
+                    new_text.append(template)
+                else:
+                    new_text.append(token)
+            text = ''.join(new_text)
+         # custom_tag
 
         ops_stack = []
 
@@ -222,14 +240,6 @@ class Templite(object):
                     for word in variables:
                         self._variable(word, self.loop_vars)
                     #self._variable(words[1], self.loop_vars)
-                    '''
-                    code.add_line(
-                        "for c_%s in %s:" % (
-                            words[1],
-                            self._expr_code(words[3])
-                        )
-                    )
-                    '''
                     code.add_line(
                         "for %s in %s:" % (
                             ','.join('c_' + x for x in variables),
@@ -246,6 +256,8 @@ class Templite(object):
                 elif words[0] == 'extends':
                     # A wrong extends tag.
                     self._syntax_error("Don't understand extends", token)
+                elif words[0] == 'include':
+                    self._syntax_error("Don't understand include", token)
                 elif words[0].startswith('end'):
                     # Endsomething.  Pop the ops stack.
                     if len(words) != 1:
@@ -306,7 +318,7 @@ class Templite(object):
     def _variable(self, name, vars_set):
         """Track that `name` is used as a variable.
 
-        Adds the name to `vars_set`, a set of variable names.
+        Adds the name to `vars_set` a set of variable names.
 
         Raises an syntax error if `name` is not a valid name.
 

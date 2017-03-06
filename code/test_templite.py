@@ -307,9 +307,15 @@ class TempliteTest(TestCase):
         self.assertEqual(Templite(
                 "{% extends base %}"
                 "{% block num %}one{% endblock %}",
-                {'base': "ABC{% block num %}{% endblock %}"}).render(),
-             "ABCone")
+                {'base': "A {% block num %}{% endblock %}"}).render(),
+            "A one")
 
+    def test_include(self):
+        self.assertEqual(Templite("{% include tmp %}", {'tmp': 'hello'}).render(), 'hello')
+        self.assertEqual(Templite(
+                "{% include tmp %}",
+                {'tmp': "{% block var %}Hello{% endblock %}"}).render(),
+            'Hello')
 
     def test_exception_during_evaluation(self):
         # TypeError: Couldn't evaluate {{ foo.bar.baz }}:
@@ -330,6 +336,8 @@ class TempliteTest(TestCase):
             self.try_render("Wat: {% block @ %}")
         with self.assertSynErr("Not a valid name: '@'"):
             self.try_render("{% extends @ %}")
+        with self.assertSynErr("Not a valid name: '@'"):
+            self.try_render("{% include @ %}")
 
     def test_bogus_tag_syntax(self):
         with self.assertSynErr("Don't understand tag: 'bogus'"):
@@ -370,6 +378,12 @@ class TempliteTest(TestCase):
             self.try_render("{% extends %}")
         with self.assertSynErr("Don't understand extends: '{% extends x %}'"):
             self.try_render("Weird: {% extends x %}")
+
+    def test_malformed_include(self):
+        with self.assertSynErr("Don't understand include: '{% include %}'"):
+            self.try_render("{% include %}")
+        with self.assertSynErr("Don't understand include: '{% include x %}'"):
+            self.try_render("{% include x %}")
 
     def test_invalid_extends(self):
         with self.assertSynErr("Not a valid name: 'unknown'"):
